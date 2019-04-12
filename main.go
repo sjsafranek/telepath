@@ -2,12 +2,12 @@ package main
 
 import (
 	"crypto/tls"
-	"flag"
-	"io/ioutil"
-	"log"
 	"errors"
+	"flag"
+	"fmt"
+	"log"
+	"strconv"
 
-	"github.com/pelletier/go-toml"
 	"gopkg.in/gomail.v2"
 )
 
@@ -20,7 +20,7 @@ go run main.go -config gmail.toml -attachment myfile.csv -subject 'here is myfil
 */
 
 const (
-	DEFAULT_CONFIG_FILE string = "config.toml"
+	DEFAULT_CONFIG_FILE string = "telepath.toml"
 	DEFAULT_ATTACHMENT  string = ""
 	DEFAULT_SUBJECT     string = ""
 	DEFAULT_MESSAGE     string = ""
@@ -33,14 +33,37 @@ var (
 	MESSAGE     = DEFAULT_MESSAGE
 )
 
-type Config struct {
-	Title    string `toml:"title"`
-	SmtpHost string `toml:"smpt_host"`
-	SmtpPort int    `toml:"smpt_port"`
-	Username string `toml:"username"`
-	Password string `toml:"password"`
-	Name     string `toml:"name"`
-	Email    string `toml:"email"`
+func getConfig(filename string) (Config, error) {
+	log.Println("opening config file")
+	var conf Config
+	err := conf.Fetch(CONFIG_FILE)
+	if nil != err {
+
+		ir := InputReader{}
+		fmt.Println("Setup email config")
+		fmt.Println("------------------")
+		conf.Title = "telepath"
+		conf.Username, _ = ir.Read("username: ")
+		conf.Password, _ = ir.Read("password: ")
+		conf.Email, _ = ir.Read("email: ")
+		conf.Name, _ = ir.Read("name: ")
+		conf.SmtpHost, _ = ir.Read("smtp host: ")
+		for {
+			smtp_port, _ := ir.Read("smtp port: ")
+			port, err := strconv.Atoi(smtp_port)
+			conf.SmtpPort = port
+			if nil != err {
+				log.Println(err)
+				continue
+			}
+			break
+		}
+		fmt.Println("------------------")
+
+		err = conf.Save(DEFAULT_CONFIG_FILE)
+		return conf, err
+	}
+	return conf, err
 }
 
 func main() {
@@ -54,13 +77,7 @@ func main() {
 		log.Fatal(errors.New("subject and message cannot be blank"))
 	}
 
-	log.Println("opening config file")
-	var conf Config
-	b, err := ioutil.ReadFile(CONFIG_FILE)
-	if nil != err {
-		log.Fatal(err)
-	}
-	err = toml.Unmarshal(b, &conf)
+	conf, err := getConfig(CONFIG_FILE)
 	if nil != err {
 		log.Fatal(err)
 	}
