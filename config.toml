@@ -1,0 +1,8 @@
+title = "email"
+
+smpt_host = "secure.emailsrvr.com"
+smpt_port = 465
+username = "username"
+password = "password"
+email = "user@email.com"
+name = "test"
